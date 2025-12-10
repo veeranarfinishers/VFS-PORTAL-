@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Labour Shift, Advance & Salary Portal</title>
+<style>
+  :root{--sticky-id:90px;--sticky-name:240px}
+  /* === Background watermark (safe) ===
+     Place logo.png in same folder as this HTML.
+     The logo file should be a faint PNG or SVG for best results.
+  */
+  body{
+    margin:0;
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: #f5f7fb;
+    /* watermark on body (doesn't block clicks) */
+    background-image: url('logo.png');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 60%;          /* adjust 40%..80% as desired */
+    background-attachment: fixed;
+  }
+
+  .wrap{max-width:1400px;margin:18px auto;padding:14px; position: relative; z-index: 1}
+  .card{background:#fff;border-radius:8px;padding:12px;margin-bottom:12px;box-shadow:0 2px 10px rgba(20,20,40,0.06)}
+  h1{margin:4px 0 10px;font-size:20px}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  input,select,button,textarea{font-size:14px;padding:8px;border-radius:6px;border:1px solid #cfd8e3}
+  button{cursor:pointer}
+  .btn{background:#0b79ff;color:#fff;border:none}
+  .btn-muted{background:#6c757d;color:#fff;border:none}
+  table{border-collapse:collapse;width:100%;font-size:12px}
+  th,td{border:1px solid #e2e8f0;padding:6px;text-align:center;white-space:nowrap}
+  th{background:#f1f5f9}
+  .small{font-size:12px}
+  .muted{color:#666;font-size:13px}
+  .danger{background:#dc3545;color:#fff;border:none}
+  .success{background:#28a745;color:#fff;border:none}
+  .hidden{display:none}
+  .controls{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+  .table-wrap{overflow:auto;background:#fff;padding:8px;border-radius:6px}
+  table thead th.sticky-id, table tbody td.sticky-id{ position:sticky; left:0; background:#fff; z-index:4; min-width:var(--sticky-id) }
+  table thead th.sticky-name, table tbody td.sticky-name{ position:sticky; left:var(--sticky-id); background:#fff; z-index:3; min-width:var(--sticky-name); text-align:left; padding-left:8px }
+  @media (max-width:1100px){ :root{--sticky-name:160px} }
+  .readonly{background:#f8f9fb}
+
+/* small UI polish */
+#roleCard h1{
+  background: linear-gradient(90deg,#0b79ff,#6dd3ff,#8b6bff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: hueShift 6s linear infinite;
+  font-weight:700;
+}
+@keyframes hueShift{ 0%{filter:hue-rotate(0deg)} 50%{filter:hue-rotate(60deg)} 100%{filter:hue-rotate(0deg)} }
+
+button{ transition: transform .12s ease, box-shadow .12s ease; will-change: transform; }
+button:hover{ transform: translateY(-3px); box-shadow: 0 6px 18px rgba(11,121,255,0.12); }
+button:active{ transform: translateY(-1px) scale(.995); box-shadow: 0 4px 12px rgba(11,121,255,0.08); }
+
+.export-pulse{ animation: pulse 1.2s infinite; box-shadow: 0 6px 22px rgba(11,121,255,0.12); }
+@keyframes pulse{ 0%{transform:scale(1)} 50%{transform:scale(1.02)} 100%{transform:scale(1)} }
+
+.table-wrap table tbody tr{ opacity:0; transform: translateY(6px); transition: opacity .32s ease, transform .32s ease; }
+.table-wrap table tbody tr.visible{ opacity:1; transform: translateY(0); }
+
+input:focus, textarea:focus, select:focus{ outline: none; box-shadow: 0 4px 18px rgba(11,121,255,0.12); border-color: #0b79ff; transition: box-shadow .18s ease, border-color .18s ease; }
+
+#labourModal{ transform: translateY(-6px); opacity: 0; transition: transform .28s cubic-bezier(.2,.9,.2,1), opacity .28s ease; }
+#labourModal.show-anim{ transform: translateY(0); opacity:1; }
+
+.small-badge{ display:inline-block;padding:6px 8px;border-radius:999px;background:#28a745;color:#fff;font-size:12px;margin-left:8px; box-shadow: 0 6px 18px rgba(40,167,69,0.12); }
+#confetti-canvas{ position:fixed; left:0; top:0; width:100%; height:100%; pointer-events:none; z-index:9999; }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card" id="roleCard">
+    <h1>Labour Shift, Advance & Salary Portal</h1>
+    <div class="row">
+      <button class="btn" onclick="showOwnerLogin()">Owner Login</button>
+      <button class="btn-muted" onclick="showLabourLogin()">Labour Login</button>
+      <div style="flex:1"></div>
+    </div>
+  </div>
+
+  <div class="card hidden" id="ownerLoginCard">
+    <h3>Owner Login</h3>
+    <label>Enter password</label>
+    <input id="ownerPwd" type="password" autocomplete="off" placeholder="password">
+    <div style="margin-top:8px">
+      <button class="btn" onclick="loginOwner()">Login</button>
+      <button onclick="backToRole()">Back</button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="labourLoginCard">
+    <h3>Labour Login</h3>
+    <label>User ID</label>
+    <input id="labUserId" placeholder="L001" autocomplete="off">
+    <label>Password</label>
+    <input id="labPwd" type="password" placeholder="password" autocomplete="off">
+    <div style="margin-top:8px">
+      <button class="btn" onclick="loginLabour()">Login</button>
+      <button onclick="backToRole()">Back</button>
+    </div>
+    <p class="small muted">(Owner creates user IDs and passwords from Owner Dashboard.)</p>
+    <p class="small muted">Demo labours for testing: L001 / 1234   L002 / 1234</p>
+  </div>
+
+  <div class="card hidden" id="ownerDashboard">
+    <div class="row" style="align-items:center;justify-content:space-between">
+      <h2>Owner Dashboard</h2>
+      <div class="actions"><button onclick="logout()">Logout</button></div>
+    </div>
+
+    <div class="controls">
+      <label>Month</label>
+      <input type="month" id="ownerMonth">
+      <button class="btn" onclick="generateOwnerTable()">Load Table</button>
+      <button onclick="openAddLabour()">Add Labour</button>
+      <button onclick="exportAll()">Export Backup</button>
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+      <label>Search (ID or Name)</label>
+      <input id="ownerSearch" placeholder="Type ID or name" oninput="ownerFilter()" style="width:300px">
+      <div style="flex:1"></div>
+      <button class="success" onclick="saveAll()">Save All (local)</button>
+      <button onclick="exportMonthExcel()">Export XLS</button>
+      <button onclick="exportMonthCSV()">Export CSV</button>
+      <button onclick="exportMonthPDF()">Export PDF</button>
+    </div>
+
+    <div class="left card table-wrap" id="ownerTableWrap"></div>
+
+    <div class="card" id="advancesCard">
+      <h3>Advances — selected month: <span id="advMonthLabel"></span></h3>
+      <div style="margin-bottom:8px">
+        <label>Select Month</label>
+        <input type="month" id="advMonth" onchange="renderAdvSection()">
+        <button onclick="renderAdvSection()">Show Advances</button>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="flex:1">
+          <table id="advTable" style="width:100%"><thead><tr><th>S.No</th><th>User ID</th><th>Name</th><th>Total Advances (₹)</th><th>Actions</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div style="width:360px">
+          <h4>Add Advance</h4>
+          <label>Labour (ID)</label>
+          <select id="advLabSelect" style="width:100%"></select>
+          <label>Date</label>
+          <input id="advDate" type="date">
+          <label>Amount (₹)</label>
+          <input id="advAmount" type="number" min="0">
+          <label>Note (optional)</label>
+          <textarea id="advNote" rows="3" style="width:100%"></textarea>
+          <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn" onclick="saveAdvanceFromSection()">Save Advance</button>
+            <button onclick="clearAdvInputs()">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="salaryCard">
+      <h3>Salary Sheet (owner can enter manual fields)</h3>
+      <div style="margin-bottom:8px;display:flex;gap:8px;align-items:center">
+        <label>Month for Salary</label>
+        <input type="month" id="salaryMonth">
+        <button onclick="renderSalarySection()">Show Salary</button>
+        <div style="flex:1"></div>
+        <button class="btn" onclick="saveSalarySheet()">Save Salary Sheet</button>
+      </div>
+
+      <div class="table-wrap">
+        <table id="salaryTable"><thead><tr>
+          <th>S.No</th><th>User ID</th><th>Name</th><th>Amt/Shift (₹)</th><th>Total Shift</th><th>Total Amt (₹)</th>
+          <th>Mess (₹)</th><th>Monthly Advance (₹)</th><th>U/F</th><th>P/F</th><th>Debit</th><th>JVC</th><th>Other</th><th>Payment Mode</th><th>Paid Salary (₹)</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+      <div class="muted small" style="margin-top:8px">Paid Salary = TotalAmt − (Mess + MonthlyAdvance + U/F + P/F + Debit + JVC + Other). Owner can override Paid Salary.</div>
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <button onclick="exportSalaryCSV()" class="btn">Download Salary CSV</button>
+        <button onclick="exportSalaryXLS()">Download Salary XLS</button>
+        <button onclick="exportSalaryPDF()">Download Salary PDF</button>
+      </div>
+    </div>
+
+    <hr>
+    <h3 class="small">Manage Labours</h3>
+    <div id="labourListWrap"></div>
+  </div>
+
+  <div class="card hidden" id="labourDashboard">
+    <div class="row" style="align-items:center;justify-content:space-between">
+      <h2>Labour Portal</h2>
+      <div><button onclick="logout()">Logout</button></div>
+    </div>
+    <div id="labourInfo"></div>
+    <label>Select Month (view historical)</label>
+    <input type="month" id="labourMonth" onchange="loadLabourAttendance()">
+    <div id="labourAttendanceWrap" class="overflow card"></div>
+    <div id="labourAdvanceWrap" class="card small"></div>
+    <div id="labourSalaryWrap" class="card small"></div>
+  </div>
+
+  <div class="card hidden" id="labourModal">
+    <h3 id="labourModalTitle">Add Labour</h3>
+    <label>User ID</label><input id="modalUserId" placeholder="L001">
+    <label>Name</label><input id="modalName">
+    <label>Password</label><input id="modalPwd">
+    <label>Rate per shift (₹)</label><input id="modalRate" type="number" min="0">
+    <div style="margin-top:8px">
+      <button class="btn" onclick="saveLabourFromModal()">Save</button>
+      <button onclick="closeLabourModal()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="small card">
+    <strong>Notes:</strong>
+    <div class="muted">Attendance editing: first column = yesterday (or previous-month-last-day if today is 1). Advances are managed below. Salary saved separately per month.</div>
+  </div>
+</div>
+
+<script>
+/* -----------------------
+   Storage & app utilities
+   ----------------------- */
+const KEY_LABOURS = 'labours_v2';
+const KEY_ATT = 'attendance_v2';
+const KEY_ADV = 'advances_v1';
+const KEY_SAL = 'salary_v1';
+
+function seed(){
+  if(!localStorage.getItem(KEY_LABOURS)){
+    const sample = [
+      {id:'L001', name:'Ramu', password:'1234', rate:500},
+      {id:'L002', name:'Selvi', password:'1234', rate:450}
+    ];
+    localStorage.setItem(KEY_LABOURS, JSON.stringify(sample));
+  }
+  if(!localStorage.getItem(KEY_ATT)) localStorage.setItem(KEY_ATT, JSON.stringify({}));
+  if(!localStorage.getItem(KEY_ADV)) localStorage.setItem(KEY_ADV, JSON.stringify({}));
+  if(!localStorage.getItem(KEY_SAL)) localStorage.setItem(KEY_SAL, JSON.stringify({}));
+}
+seed();
+
+function getLabours(){ return JSON.parse(localStorage.getItem(KEY_LABOURS)||'[]') }
+function setLabours(a){ localStorage.setItem(KEY_LABOURS, JSON.stringify(a)) }
+function getAttendance(){ return JSON.parse(localStorage.getItem(KEY_ATT)||'{}') }
+function setAttendance(o){ localStorage.setItem(KEY_ATT, JSON.stringify(o)) }
+function getAdvances(){ return JSON.parse(localStorage.getItem(KEY_ADV)||'{}') }
+function setAdvances(o){ localStorage.setItem(KEY_ADV, JSON.stringify(o)) }
+function getSalaries(){ return JSON.parse(localStorage.getItem(KEY_SAL)||'{}') }
+function setSalaries(o){ localStorage.setItem(KEY_SAL, JSON.stringify(o)) }
+function $id(i){ return document.getElementById(i) }
+
+/* ----- UI helpers ----- */
+function hideAll(){ ['ownerLoginCard','labourLoginCard','ownerDashboard','labourDashboard','labourModal'].forEach(id=> $id(id).classList.add('hidden')) }
+function showOwnerLogin(){ hideAll(); $id('ownerLoginCard').classList.remove('hidden') }
+function showLabourLogin(){ hideAll(); $id('labourLoginCard').classList.remove('hidden') }
+function backToRole(){ hideAll(); $id('roleCard').classList.remove('hidden') }
+
+/* -----------------------
+   Login flows
+   ----------------------- */
+/* Owner password (updated per your request) */
+function loginOwner(){
+  const pwd = $id('ownerPwd').value.trim();
+  if(pwd === 'vfs15254'){
+    hideAll();
+    $id('ownerDashboard').classList.remove('hidden');
+    initOwnerMonth();
+    renderLabourList();
+    populateAdvLabSelect();
+    renderAdvSection();
+    $id('salaryMonth').value = $id('ownerMonth').value;
+    renderSalarySection();
+  } else {
+    alert('Wrong password');
+  }
+}
+
+let currentLabour = null;
+function loginLabour(){
+  const id = $id('labUserId').value.trim(); const pwd = $id('labPwd').value.trim();
+  const lab = getLabours().find(l => l.id === id && l.password === pwd);
+  if(!lab){ alert('Invalid ID or password'); return; }
+  currentLabour = lab;
+  hideAll(); $id('labourDashboard').classList.remove('hidden');
+  $id('labourMonth').value = new Date().toISOString().slice(0,7);
+  showLabourInfo(); loadLabourAttendance(); loadLabourAdvances(); loadLabourSalary();
+}
+function logout(){ location.reload(); }
+
+/* -----------------------
+   Manage labours
+   ----------------------- */
+function renderLabourList(){
+  const wrap = $id('labourListWrap'); const arr = getLabours();
+  let html = '<table><tr><th>S.No</th><th>User ID</th><th>Name</th><th>Rate/Shift</th><th>Actions</th></tr>';
+  arr.forEach((l,i)=> { html += `<tr><td>${i+1}</td><td>${l.id}</td><td>${l.name}</td><td>₹${l.rate}</td><td><button onclick="openEditLabour('${l.id}')">Edit</button> <button onclick="openEditUserId('${l.id}')">Edit ID</button> <button onclick="deleteLabour('${l.id}')" class="danger">Delete</button></td></tr>` });
+  html += '</table>'; wrap.innerHTML = html;
+}
+function openAddLabour(){ $id('labourModalTitle').textContent='Add Labour'; $id('modalUserId').value=''; $id('modalName').value=''; $id('modalPwd').value='1234'; $id('modalRate').value='500'; $id('labourModal').dataset.editId=''; $id('labourModal').classList.remove('hidden'); $id('labourModal').classList.add('show-anim'); }
+function openEditLabour(id){ const lab = getLabours().find(l=>l.id===id); if(!lab) return; $id('labourModalTitle').textContent='Edit Labour'; $id('modalUserId').value=lab.id; $id('modalName').value=lab.name; $id('modalPwd').value=lab.password; $id('modalRate').value=lab.rate; $id('labourModal').dataset.editId=id; $id('labourModal').classList.remove('hidden'); $id('labourModal').classList.add('show-anim'); }
+function closeLabourModal(){ $id('labourModal').classList.add('hidden'); $id('labourModal').classList.remove('show-anim'); delete $id('labourModal').dataset.editId; }
+function openEditUserId(oldId){ openEditLabour(oldId); }
+function saveLabourFromModal(){
+  const inputId = $id('modalUserId').value.trim(), name = $id('modalName').value.trim(), pwd = $id('modalPwd').value.trim(), rate = Number($id('modalRate').value) || 0;
+  if(!inputId || !name){ alert('Enter ID and name'); return; }
+  const arr = getLabours(); const editId = $id('labourModal').dataset.editId || ''; const existing = arr.find(x=>x.id===inputId);
+  if(editId){
+    if(inputId !== editId && existing){ alert('User ID exists'); return; }
+    const idx = arr.findIndex(x=>x.id===editId); if(idx===-1){ alert('Original not found'); return; }
+    if(inputId !== editId){
+      const att = getAttendance(), moved = {};
+      Object.keys(att).forEach(k=>{ if(k.startsWith(editId + '_')){ const suffix = k.slice((editId + '_').length); moved[inputId + '_' + suffix] = att[k]; delete att[k]; }});
+      Object.assign(att, moved); setAttendance(att);
+      const adv = getAdvances(); if(adv[editId]){ adv[inputId] = adv[inputId]||[]; adv[inputId] = adv[inputId].concat(adv[editId]); delete adv[editId]; setAdvances(adv); }
+      const sal = getSalaries(); if(sal[editId]){ sal[inputId] = sal[inputId] || {}; Object.keys(sal[editId]).forEach(k=> sal[inputId][k] = sal[editId][k]); delete sal[editId]; setSalaries(sal); }
+    }
+    arr[idx].id = inputId; arr[idx].name = name; arr[idx].password = pwd; arr[idx].rate = rate; setLabours(arr);
+    closeLabourModal(); renderLabourList(); generateOwnerTable(); populateAdvLabSelect(); renderSalarySection(); alert('Saved and moved data if ID changed');
+    return;
+  }
+  if(existing){ alert('User ID exists'); return; }
+  arr.push({id:inputId, name, password:pwd, rate}); setLabours(arr); closeLabourModal(); renderLabourList(); generateOwnerTable(); populateAdvLabSelect(); renderSalarySection(); alert('Labour added: ' + inputId);
+}
+function deleteLabour(id){
+  if(!confirm('Delete this labour and its attendance and advances?')) return;
+  let arr = getLabours(); arr = arr.filter(x=>x.id !== id); setLabours(arr);
+  const att = getAttendance(); Object.keys(att).forEach(k=>{ if(k.startsWith(id + '_')) delete att[k]; }); setAttendance(att);
+  const adv = getAdvances(); if(adv[id]){ delete adv[id]; setAdvances(adv); }
+  const sal = getSalaries(); if(sal[id]){ delete sal[id]; setSalaries(sal); }
+  renderLabourList(); generateOwnerTable(); populateAdvLabSelect(); renderSalarySection();
+  alert('Deleted ' + id);
+}
+
+/* -----------------------
+   Column logic
+   ----------------------- */
+function getColumnsForMonth(monthStr){
+  const [y,m] = monthStr.split('-').map(Number);
+  const daysInMonth = new Date(y,m,0).getDate();
+  const today = new Date(); const currentMonthStr = today.toISOString().slice(0,7);
+  const cols = [];
+  if(monthStr === currentMonthStr){
+    const todayDay = today.getDate();
+    if(todayDay === 1){
+      const prev = new Date(today.getFullYear(), today.getMonth(), 0);
+      const prevDay = prev.getDate();
+      const prevMonthStr = prev.toISOString().slice(0,7);
+      cols.push({day:prevDay, month:prevMonthStr});
+      for(let d=1; d<=daysInMonth; d++) cols.push({day:d, month:monthStr});
+    } else {
+      for(let d = todayDay - 1; d >= 1; d--) cols.push({day:d, month:monthStr});
+    }
+  } else {
+    for(let d = daysInMonth; d >=1; d--) cols.push({day:d, month:monthStr});
+  }
+  return cols;
+}
+
+/* -----------------------
+   Owner attendance table
+   ----------------------- */
+function initOwnerMonth(){ const today = new Date(); $id('ownerMonth').value = today.toISOString().slice(0,7); generateOwnerTable(); $id('salaryMonth').value = $id('ownerMonth').value; }
+function generateOwnerTable(){
+  const monthStr = $id('ownerMonth').value; if(!monthStr){ alert('Select month'); return; }
+  const cols = getColumnsForMonth(monthStr); const labs = getLabours(); const att = getAttendance();
+  let html = '<div style="overflow:auto"><table id="ownerTable"><thead><tr>';
+  html += '<th class="sticky-id">S.No</th><th class="sticky-name">User ID - Name</th>';
+  cols.forEach(c => html += `<th data-day="${c.day}" data-month="${c.month}">${c.day}</th>`);
+  html += '<th>Total Shifts</th><th>Actions</th></tr></thead><tbody>';
+  labs.forEach((lab,i)=>{
+    const keyForMonth = lab.id + '_' + monthStr;
+    const rec = att[keyForMonth] || {shifts:{}, rate: lab.rate};
+    let totalShifts = 0;
+    html += `<tr data-id="${lab.id}"><td class="sticky-id">${i+1}</td><td class="sticky-name">${lab.id} - ${lab.name}</td>`;
+    cols.forEach(c => {
+      const key = lab.id + '_' + c.month;
+      const rec2 = att[key] || {shifts:{}};
+      const v = rec2.shifts && rec2.shifts[c.day] ? rec2.shifts[c.day] : 0;
+      if(c.month === monthStr) totalShifts += Number(v)||0;
+      html += `<td><input type="number" min="0" value="${v}" class="cellInp" data-day="${c.day}" data-month="${c.month}" style="width:64px"></td>`;
+    });
+    html += `<td class="rowTotal">${totalShifts}</td><td><button onclick="prefillAdvance('${lab.id}')">Add Advance</button> <button onclick="viewAdvances('${lab.id}')">View</button></td></tr>`;
+  });
+  html += '</tbody></table></div>';
+  $id('ownerTableWrap').innerHTML = html;
+  // attach listeners & animate rows
+  $id('ownerTableWrap').querySelectorAll('.cellInp').forEach(i => i.addEventListener('input', () => { updateRowTotals(); ownerFilter(); }));
+  updateRowTotals();
+  setTimeout(()=> animateTableRows('#ownerTable'), 40);
+}
+function updateRowTotals(){
+  const rows = $id('ownerTableWrap').querySelectorAll('tbody tr');
+  rows.forEach(row=>{
+    let total = 0; const monthStr = $id('ownerMonth').value;
+    row.querySelectorAll('.cellInp').forEach(ci => { if(ci.dataset.month === monthStr) total += Number(ci.value) || 0; });
+    row.querySelector('.rowTotal').textContent = total;
+  });
+}
+function ownerFilter(){ const q = $id('ownerSearch').value.trim().toLowerCase(); const rows = document.querySelectorAll('#ownerTable tbody tr'); if(!rows) return; rows.forEach(r=>{ const idName = (r.querySelector('.sticky-name') && r.querySelector('.sticky-name').textContent) || ''; const parts = idName.split(' - '); const id = parts[0] || ''; const name = parts[1] || ''; if(!q){ r.style.display = ''; return; } if(id.toLowerCase().includes(q) || name.toLowerCase().includes(q)) r.style.display = ''; else r.style.display = 'none'; }); }
+function saveAll(){ const monthStr = $id('ownerMonth').value; if(!monthStr){ alert('Select month'); return; } const rows = $id('ownerTableWrap').querySelectorAll('tbody tr'); const att = getAttendance(); rows.forEach(row=>{ const id = row.dataset.id; const perMonth = {}; row.querySelectorAll('.cellInp').forEach(ci=>{ const day = ci.dataset.day; const m = ci.dataset.month; if(!perMonth[m]) perMonth[m] = {shifts:{}}; perMonth[m].shifts[day] = Number(ci.value) || 0; }); Object.keys(perMonth).forEach(m=>{ const key = id + '_' + m; const existing = att[key] || {shifts:{}, rate: getLabours().find(l=>l.id===id).rate}; existing.shifts = Object.assign(existing.shifts || {}, perMonth[m].shifts); att[key] = existing; }); }); setAttendance(att); alert('Saved (local). Attendance stored per month.'); try{ window.celebrateSave(); }catch(e){} const btn = document.querySelector('button.success'); if(btn){ const b = document.createElement('span'); b.className='small-badge'; b.textContent='Saved'; btn.parentNode && btn.parentNode.insertBefore(b, btn.nextSibling); setTimeout(()=> b.remove(), 2200); } }
+
+/* -----------------------
+   Advances
+   ----------------------- */
+function populateAdvLabSelect(){ const sel = $id('advLabSelect'); sel.innerHTML = ''; getLabours().forEach(l=>{ const opt = document.createElement('option'); opt.value = l.id; opt.textContent = l.id + ' - ' + l.name; sel.appendChild(opt); }); }
+function renderAdvSection(){ const month = $id('advMonth').value || $id('ownerMonth').value || new Date().toISOString().slice(0,7); $id('advMonthLabel').textContent = month; const adv = getAdvances(); const labs = getLabours(); const tbody = $id('advTable').querySelector('tbody'); tbody.innerHTML = ''; labs.forEach((lab,i)=>{ const list = (adv[lab.id] || []).filter(a=> a.date && a.date.startsWith(month)); const total = list.reduce((s,it)=> s + Number(it.amount||0), 0); const tr = document.createElement('tr'); tr.innerHTML = `<td>${i+1}</td><td>${lab.id}</td><td style="text-align:left;padding-left:6px">${lab.name}</td><td>₹${total}</td><td><button onclick="prefillAdvance('${lab.id}')">Add</button> <button onclick="viewAdvances('${lab.id}')">View</button></td>`; tbody.appendChild(tr); }); populateAdvLabSelect(); setTimeout(()=> animateTableRows('#advTable'), 40); }
+function clearAdvInputs(){ $id('advDate').value=''; $id('advAmount').value=''; $id('advNote').value=''; }
+function saveAdvanceFromSection(){ const labId = $id('advLabSelect').value; const date = $id('advDate').value; const amount = Number($id('advAmount').value) || 0; const note = $id('advNote').value.trim(); if(!labId || !date || amount <= 0){ alert('Select labour, enter date and amount'); return; } const adv = getAdvances(); adv[labId] = adv[labId] || []; adv[labId].push({date, amount, note}); setAdvances(adv); clearAdvInputs(); renderAdvSection(); generateOwnerTable(); alert('Advance saved'); }
+function prefillAdvance(labId){ $id('advLabSelect').value = labId; $id('advDate').value = new Date().toISOString().slice(0,10); $id('advAmount').value=''; $id('advNote').value=''; window.scrollTo({top:document.body.scrollHeight, behavior:'smooth'}); }
+function viewAdvances(labId){ const adv = getAdvances(); const list = adv[labId] || []; let html = `<h3>Advances for ${labId}</h3>`; if(list.length===0) html += '<p>No advances</p>'; else{ html += '<table><tr><th>Date</th><th>Amount</th><th>Note</th></tr>'; list.slice().reverse().forEach(a=> html += `<tr><td>${a.date}</td><td>₹${a.amount}</td><td style="text-align:left;padding-left:6px">${a.note||''}</td></tr>`); html += '</table>'; } const w = window.open('', '_blank'); w.document.write('<title>Advances</title>'+html); w.document.close(); }
+
+/* -----------------------
+   Salary
+   ----------------------- */
+function renderSalarySection(){ const month = $id('salaryMonth').value || $id('ownerMonth').value || new Date().toISOString().slice(0,7); const labs = getLabours(); const att = getAttendance(); const sal = getSalaries(); const tbody = $id('salaryTable').querySelector('tbody'); tbody.innerHTML = '';
+  labs.forEach((lab,i)=>{
+    const rec = att[lab.id + '_' + month] || {shifts:{}, rate:lab.rate};
+    const totalShift = Object.values(rec.shifts||{}).reduce((s,v)=> s + (Number(v)||0), 0);
+    const salaryRec = (sal[lab.id] && sal[lab.id][month]) ? sal[lab.id][month] : {
+      amtPerShift: rec.rate || lab.rate,
+      mess:0, monthlyAdvance:0, uf:0, pf:0, debit:0, jvc:0, other:0, paymentMode:'Cash', paid:0
+    };
+    const totalAmt = totalShift * totalShift;
+    const deductions = (Number(salaryRec.mess)||0) + (Number(salaryRec.monthlyAdvance)||0) + (Number(salaryRec.uf)||0) + (Number(salaryRec.pf)||0) + (Number(salaryRec.debit)||0) + (Number(salaryRec.jvc)||0) + (Number(salaryRec.other)||0);
+    const calcPaid = totalAmt - deductions;
+    const paidVal = (salaryRec.paid && Number(salaryRec.paid)>0) ? Number(salaryRec.paid) : calcPaid;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${i+1}</td>
+      <td>${lab.id}</td>
+      <td style="text-align:left;padding-left:6px">${lab.name}</td>
+      <td><input class="salary-amtPerShift" data-id="${lab.id}" style="width:90px" value="${salaryRec.amtPerShift}"></td>
+      <td><input class="salary-totalShift readonly" data-id="${lab.id}" style="width:90px" value="${totalShift}" readonly></td>
+      <td><input class="salary-totalAmt readonly" data-id="${lab.id}" style="width:110px" value="${totalAmt}" readonly></td>
+      <td><input class="salary-mess" data-id="${lab.id}" style="width:90px" value="${salaryRec.mess}"></td>
+      <td><input class="salary-monthlyAdvance" data-id="${lab.id}" style="width:90px" value="${salaryRec.monthlyAdvance}"></td>
+      <td><input class="salary-uf" data-id="${lab.id}" style="width:90px" value="${salaryRec.uf}"></td>
+      <td><input class="salary-pf" data-id="${lab.id}" style="width:90px" value="${salaryRec.pf}"></td>
+      <td><input class="salary-debit" data-id="${lab.id}" style="width:90px" value="${salaryRec.debit}"></td>
+      <td><input class="salary-jvc" data-id="${lab.id}" style="width:90px" value="${salaryRec.jvc}"></td>
+      <td><input class="salary-other" data-id="${lab.id}" style="width:90px" value="${salaryRec.other}"></td>
+      <td><input class="salary-paymentMode" data-id="${lab.id}" style="width:100px" value="${salaryRec.paymentMode}"></td>
+      <td><input class="salary-paid" data-id="${lab.id}" style="width:110px" value="${paidVal}"></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  document.querySelectorAll('#salaryTable input').forEach(inp => inp.addEventListener('input', salaryInputChanged));
+  setTimeout(()=> animateTableRows('#salaryTable'), 40);
+}
+function salaryInputChanged(e){
+  const id = e.target.dataset.id; if(!id) return;
+  const row = Array.from(document.querySelectorAll('#salaryTable tbody tr')).find(tr => tr.querySelector('.salary-amtPerShift') && tr.querySelector('.salary-amtPerShift').dataset.id === id);
+  if(!row) return;
+  const totalShift = Number(row.querySelector('.salary-totalShift').value) || 0;
+  const totalAmt = totalShift * totalShift;
+  row.querySelector('.salary-totalAmt').value = totalAmt;
+  const mess = Number(row.querySelector('.salary-mess').value) || 0;
+  const monthlyAdvance = Number(row.querySelector('.salary-monthlyAdvance').value) || 0;
+  const uf = Number(row.querySelector('.salary-uf').value) || 0;
+  const pf = Number(row.querySelector('.salary-pf').value) || 0;
+  const debit = Number(row.querySelector('.salary-debit').value) || 0;
+  const jvc = Number(row.querySelector('.salary-jvc').value) || 0;
+  const other = Number(row.querySelector('.salary-other').value) || 0;
+  const deductions = mess + monthlyAdvance + uf + pf + debit + jvc + other;
+  const calcPaid = totalAmt - deductions;
+  const paidInput = row.querySelector('.salary-paid');
+  if(paidInput === e.target){ } else { paidInput.value = calcPaid; }
+}
+function saveSalarySheet(){
+  const month = $id('salaryMonth').value || $id('ownerMonth').value; if(!month){ alert('Select salary month'); return; }
+  const rows = document.querySelectorAll('#salaryTable tbody tr');
+  const sal = getSalaries();
+  rows.forEach(r => {
+    const labId = r.querySelector('.salary-amtPerShift').dataset.id;
+    sal[labId] = sal[labId] || {};
+    sal[labId][month] = {
+      amtPerShift: Number(r.querySelector('.salary-amtPerShift').value) || 0,
+      totalShift: Number(r.querySelector('.salary-totalShift').value) || 0,
+      totalAmt: Number(r.querySelector('.salary-totalAmt').value) || 0,
+      mess: Number(r.querySelector('.salary-mess').value) || 0,
+      monthlyAdvance: Number(r.querySelector('.salary-monthlyAdvance').value) || 0,
+      uf: Number(r.querySelector('.salary-uf').value) || 0,
+      pf: Number(r.querySelector('.salary-pf').value) || 0,
+      debit: Number(r.querySelector('.salary-debit').value) || 0,
+      jvc: Number(r.querySelector('.salary-jvc').value) || 0,
+      other: Number(r.querySelector('.salary-other').value) || 0,
+      paymentMode: r.querySelector('.salary-paymentMode').value || '',
+      paid: Number(r.querySelector('.salary-paid').value) || 0
+    };
+  });
+  setSalaries(sal);
+  alert('Salary sheet saved for ' + month);
+  try{ window.celebrateSave(); }catch(e){}
+}
+
+/* -----------------------
+   Labour Portal views
+   ----------------------- */
+function showLabourInfo(){ if(!currentLabour) return; $id('labourInfo').innerHTML = `<p><strong>${currentLabour.name}</strong> (User ID: ${currentLabour.id})</p>`; $id('labourMonth').value = new Date().toISOString().slice(0,7); }
+function loadLabourAttendance(){
+  if(!currentLabour) return; const monthStr = $id('labourMonth').value; if(!monthStr) return;
+  const cols = getColumnsForMonth(monthStr); const att = getAttendance(); const keyBase = currentLabour.id;
+  let html = '<table><tr><th>Date</th><th>Shifts</th></tr>'; let total=0;
+  cols.forEach(c=>{ const rec = att[keyBase + '_' + c.month] || {shifts:{}}; const v = rec.shifts && rec.shifts[c.day] ? rec.shifts[c.day] : 0; html += `<tr><td>${c.day}${c.month!==monthStr ? ' ('+c.month+')' : ''}</td><td>${v}</td></tr>`; total += Number(v)||0; });
+  html += '</table>'; $id('labourAttendanceWrap').innerHTML = html; loadLabourAdvances(); loadLabourSalary();
+}
+function loadLabourAdvances(){ if(!currentLabour) return; const adv = getAdvances(); const list = adv[currentLabour.id] || []; const monthStr = $id('labourMonth').value; let html = '<h4>Advance history</h4>'; const filtered = list.filter(a=> !monthStr || a.date.startsWith(monthStr)); if(filtered.length===0) html += '<p>No advances for selected month</p>'; else{ html += '<table><tr><th>Date</th><th>Amount</th><th>Note</th></tr>'; filtered.slice().reverse().forEach(a=> html += `<tr><td>${a.date}</td><td>₹${a.amount}</td><td style="text-align:left;padding-left:6px">${a.note||''}</td></tr>`); html += '</table>'; const total = filtered.reduce((s,it)=>s+Number(it.amount||0),0); html += `<p><strong>Total advances (month): ₹${total}</strong></p>`; } $id('labourAdvanceWrap').innerHTML = html; }
+function loadLabourSalary(){
+  if(!currentLabour) return;
+  const month = $id('labourMonth').value;
+  if(!month){ $id('labourSalaryWrap').innerHTML = '<p>Select a month to view salary.</p>'; return; }
+  const att = getAttendance(), advAll = getAdvances(), salAll = getSalaries();
+  const recKey = currentLabour.id + '_' + month; const rec = att[recKey] || {shifts:{}, rate: currentLabour.rate};
+  const cols = getColumnsForMonth(month);
+  let shiftsHtml = '<table style="width:100%;margin-bottom:6px"><thead><tr><th>Date</th><th>Shifts</th></tr></thead><tbody>'; let totalShift = 0;
+  cols.forEach(c=>{ const k = currentLabour.id + '_' + c.month; const r = att[k] || {shifts:{}}; const v = r.shifts && r.shifts[c.day] ? Number(r.shifts[c.day]) : 0; shiftsHtml += `<tr><td style="text-align:left;padding-left:6px">${c.day}${c.month!==month ? ' ('+c.month+')' : ''}</td><td style="text-align:right;padding-right:6px">${v}</td></tr>`; totalShift += v; });
+  shiftsHtml += `</tbody></table>`;
+  const advList = (advAll[currentLabour.id]||[]).filter(a => a.date && a.date.startsWith(month));
+  const advTotal = advList.reduce((s,x)=> s + (Number(x.amount)||0), 0);
+  const salaryRec = (salAll[currentLabour.id] && salAll[currentLabour.id][month]) ? salAll[currentLabour.id][month] : null;
+  const amtPerShift = salaryRec ? Number(salaryRec.amtPerShift||0) : Number(rec.rate||0);
+  const totalAmt = totalShift * totalShift;
+  const mess = salaryRec ? Number(salaryRec.mess||0) : 0;
+  const monthlyAdvanceManual = salaryRec ? Number(salaryRec.monthlyAdvance||0) : 0;
+  const uf = salaryRec ? Number(salaryRec.uf||0) : 0;
+  const pf = salaryRec ? Number(salaryRec.pf||0) : 0;
+  const debit = salaryRec ? Number(salaryRec.debit||0) : 0;
+  const jvc = salaryRec ? Number(salaryRec.jvc||0) : 0;
+  const other = salaryRec ? Number(salaryRec.other||0) : 0;
+  const paymentMode = salaryRec ? (salaryRec.paymentMode || '') : '';
+  const paidSaved = salaryRec ? Number(salaryRec.paid||0) : null;
+  const deductions = mess + monthlyAdvanceManual + uf + pf + debit + jvc + other;
+  const paidCalculated = totalAmt - deductions;
+  let html = `<h4>Salary details — ${month}</h4>`;
+  html += `<div style="display:flex;gap:12px;align-items:center;margin-bottom:6px"><div><strong>${currentLabour.name}</strong> (ID: ${currentLabour.id})</div><div style="margin-left:10px;color:#666">Amt/Shift: ₹${amtPerShift}</div></div>`;
+  html += `<div style="margin-bottom:8px">${shiftsHtml}</div>`;
+  html += `<div style="margin-bottom:8px"><strong>Advances (month): ₹${advTotal}</strong>`;
+  if(advList.length){
+    html += '<div style="margin-top:6px"><table style="width:100%"><thead><tr><th style="text-align:left">Date</th><th style="text-align:right">Amount (₹)</th><th style="text-align:left">Note</th></tr></thead><tbody>';
+    advList.slice().reverse().forEach(a => html += `<tr><td style="text-align:left;padding-left:6px">${a.date}</td><td style="text-align:right;padding-right:6px">₹${a.amount}</td><td style="text-align:left;padding-left:6px">${a.note||''}</td></tr>`);
+    html += '</tbody></table></div>';
+  }
+  html += `</div>`;
+  html += `<table style="width:100%;margin-top:6px"><tbody>`;
+  html += rowTD('Total Shift', totalShift);
+  html += rowTD('Amt/Shift (stored)', `₹${amtPerShift}`);
+  html += rowTD('Total Amt (TotalShift × TotalShift)', `₹${totalAmt}`);
+  html += rowTD('Mess', `₹${mess}`);
+  html += rowTD('Monthly Advance (manual)', `₹${monthlyAdvanceManual}`);
+  html += rowTD('U/F', `₹${uf}`);
+  html += rowTD('P/F', `₹${pf}`);
+  html += rowTD('Debit', `₹${debit}`);
+  html += rowTD('JVC Amt', `₹${jvc}`);
+  html += rowTD('Other', `₹${other}`);
+  html += rowTD('Deductions Total', `₹${deductions}`);
+  html += rowTD('Paid (calculated)', `₹${paidCalculated}`);
+  html += rowTD('Paid (owner saved)', paidSaved === null ? '—' : `₹${paidSaved}`);
+  html += rowTD('Payment Mode', paymentMode || '—');
+  html += `</tbody></table>`;
+  if(!salaryRec){ html += `<p style="color:#666;margin-top:8px">Note: Owner has not saved a salary sheet for this month. You are shown calculated values based on stored data.</p>`; }
+  else { html += `<p style="color:#0b79ff;margin-top:8px">Owner-saved salary sheet is available for this month.</p>`; }
+  $id('labourSalaryWrap').innerHTML = html;
+  function rowTD(label, value){ return `<tr><td style="text-align:left;padding:6px 12px;font-weight:600">${label}</td><td style="text-align:right;padding:6px 12px">${value}</td></tr>`; }
+}
+
+/* -----------------------
+   Backup export
+   ----------------------- */
+function exportAll(){ const payload = {labours: getLabours(), attendance: getAttendance(), advances: getAdvances(), salaries: getSalaries()}; const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'attendance_backup_with_advances_and_salary.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
+
+/* -----------------------
+   Shift exports (CSV/XLS/PDF)
+   ----------------------- */
+function _collectShiftRows_forExport(monthStr) {
+  if(!monthStr) return null;
+  const labs = getLabours();
+  const att = getAttendance();
+  const [y,m] = monthStr.split('-').map(Number);
+  const daysInMonth = new Date(y, m, 0).getDate();
+
+  const rows = [];
+  labs.forEach((lab, idx) => {
+    const key = lab.id + '_' + monthStr;
+    const rec = att[key] || {shifts:{}};
+    const row = { sno: idx + 1, id: lab.id, name: lab.name, days: [], total: 0 };
+    for(let d = 1; d <= daysInMonth; d++){
+      const v = (rec.shifts && (rec.shifts[d] !== undefined)) ? Number(rec.shifts[d]) : 0;
+      row.days.push(v);
+      row.total += v;
+    }
+    rows.push(row);
+  });
+  return { rows, daysInMonth };
+}
+
+function exportMonthCSV() {
+  const monthStr = $id('ownerMonth').value;
+  if(!monthStr){ alert('Select month first'); return; }
+  const data = _collectShiftRows_forExport(monthStr);
+  if(!data || !data.rows.length){ alert('No attendance data for selected month'); return; }
+  const {rows, daysInMonth} = data;
+  const header = ['S.No','User ID','Name'];
+  for(let d=1; d<=daysInMonth; d++) header.push(String(d));
+  header.push('Total Shifts');
+
+  const csvRows = [header].concat(rows.map(r => [r.sno, r.id, r.name].concat(r.days).concat([r.total])));
+  const csv = csvRows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `shiftsheet_${monthStr}.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+
+function exportMonthExcel() {
+  const monthStr = $id('ownerMonth').value;
+  if(!monthStr){ alert('Select month first'); return; }
+  const data = _collectShiftRows_forExport(monthStr);
+  if(!data || !data.rows.length){ alert('No attendance data for selected month'); return; }
+  const {rows, daysInMonth} = data;
+
+  let html = '<table border="1"><thead><tr>';
+  const header = ['S.No','User ID','Name'];
+  for(let d=1; d<=daysInMonth; d++) header.push(String(d));
+  header.push('Total Shifts');
+  header.forEach(h => html += `<th style="background:#eee;padding:6px">${h}</th>`);
+  html += '</tr></thead><tbody>';
+
+  rows.forEach(r => {
+    html += '<tr>';
+    html += `<td>${r.sno}</td><td>${r.id}</td><td style="text-align:left;padding-left:6px">${r.name}</td>`;
+    r.days.forEach(v => html += `<td>${v}</td>`);
+    html += `<td>${r.total}</td>`;
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  const blob = new Blob(['\uFEFF' + html], {type: 'application/vnd.ms-excel'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `shiftsheet_${monthStr}.xls`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+
+function exportMonthPDF() {
+  const monthStr = $id('ownerMonth').value;
+  if(!monthStr){ alert('Select month first'); return; }
+  const data = _collectShiftRows_forExport(monthStr);
+  if(!data || !data.rows.length){ alert('No attendance data for selected month'); return; }
+  const {rows, daysInMonth} = data;
+
+  let html = `<!doctype html><html><head><meta charset="utf-8"><title>Shift sheet ${monthStr}</title>`;
+  html += '<style>body{font-family:Arial,Helvetica,sans-serif;font-size:12px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #333;padding:6px;text-align:center}th{background:#eee}td.left{text-align:left;padding-left:6px}</style></head><body>';
+  html += `<h2>Shift sheet — ${monthStr}</h2>`;
+  html += '<table><thead><tr>';
+  const header = ['S.No','User ID','Name'];
+  for(let d=1; d<=daysInMonth; d++) header.push(String(d));
+  header.push('Total Shifts');
+  header.forEach(h => html += `<th>${h}</th>`);
+  html += '</tr></thead><tbody>';
+
+  rows.forEach(r => {
+    html += '<tr>';
+    html += `<td>${r.sno}</td><td>${r.id}</td><td class="left">${r.name}</td>`;
+    r.days.forEach(v => html += `<td>${v}</td>`);
+    html += `<td>${r.total}</td>`;
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  html += '<p style="margin-top:12px;color:#666">Generated by Shift Portal</p>';
+  html += '</body></html>';
+
+  const w = window.open('', '_blank');
+  if(!w){ alert('Pop-up blocked. Allow pop-ups for this site to print/save PDF.'); return; }
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+}
+
+/* -----------------------
+   Salary exports (CSV/XLS/PDF)
+   ----------------------- */
+function _collectSalaryRows_forExport(monthStr) {
+  if(!monthStr) return null;
+  const labs = getLabours();
+  const att = getAttendance();
+  const adv = getAdvances();
+  const sal = getSalaries();
+  const rows = [];
+  labs.forEach((lab, idx) => {
+    const rec = att[lab.id + '_' + monthStr] || {shifts:{}, rate: lab.rate};
+    const totalShift = Object.values(rec.shifts||{}).reduce((s,v)=> s + (Number(v)||0), 0);
+    const totalAmt = totalShift * totalShift;
+    const advList = (adv[lab.id] || []).filter(a => a.date && a.date.startsWith(monthStr));
+    const advTotal = advList.reduce((s,a) => s + (Number(a.amount)||0), 0);
+    const salaryRec = (sal[lab.id] && sal[lab.id][monthStr]) ? sal[lab.id][monthStr] : null;
+    const amtPerShift = salaryRec ? Number(salaryRec.amtPerShift||0) : Number(rec.rate||0);
+    const mess = salaryRec ? Number(salaryRec.mess||0) : 0;
+    const monthlyAdvance = salaryRec ? Number(salaryRec.monthlyAdvance||0) : 0;
+    const uf = salaryRec ? Number(salaryRec.uf||0) : 0;
+    const pf = salaryRec ? Number(salaryRec.pf||0) : 0;
+    const debit = salaryRec ? Number(salaryRec.debit||0) : 0;
+    const jvc = salaryRec ? Number(salaryRec.jvc||0) : 0;
+    const other = salaryRec ? Number(salaryRec.other||0) : 0;
+    const paymentMode = salaryRec ? (salaryRec.paymentMode || '') : '';
+    const paidSaved = salaryRec ? Number(salaryRec.paid||0) : null;
+    const deductions = mess + monthlyAdvance + uf + pf + debit + jvc + other;
+    const paidCalc = totalAmt - deductions;
+    const paidToShow = (paidSaved !== null && !Number.isNaN(paidSaved)) ? paidSaved : paidCalc;
+    rows.push({
+      sno: idx + 1,
+      id: lab.id,
+      name: lab.name,
+      amtPerShift: amtPerShift,
+      totalShift: totalShift,
+      totalAmt: totalAmt,
+      storedAdvances: advTotal,
+      mess: mess,
+      monthlyAdvance: monthlyAdvance,
+      uf: uf,
+      pf: pf,
+      debit: debit,
+      jvc: jvc,
+      other: other,
+      deductions: deductions,
+      paymentMode: paymentMode,
+      paidSalary: paidToShow
+    });
+  });
+  return rows;
+}
+function exportSalaryCSV() {
+  const monthStr = $id('salaryMonth').value || $id('ownerMonth').value;
+  if(!monthStr){ alert('Select month first'); return; }
+  const rows = _collectSalaryRows_forExport(monthStr);
+  if(!rows || rows.length === 0){ alert('No data to export'); return; }
+  const header = ['S.No','User ID','Name','Amt/Shift','Total Shift','Total Amt','Stored Advances','Mess','Monthly Advance','U/F','P/F','Debit','JVC Amt','Other','Deductions','Payment Mode','Paid Salary'];
+  const csvRows = [header].concat(rows.map(r => [
+    r.sno, r.id, r.name, r.amtPerShift, r.totalShift, r.totalAmt, r.storedAdvances,
+    r.mess, r.monthlyAdvance, r.uf, r.pf, r.debit, r.jvc, r.other, r.deductions, r.paymentMode, r.paidSalary
+  ]));
+  const csv = csvRows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `salary_${monthStr}.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+function exportSalaryXLS() {
+  const monthStr = $id('salaryMonth').value || $id('ownerMonth').value;
+  if(!monthStr){ alert('Select month first'); return; }
+  const rows = _collectSalaryRows_forExport(monthStr);
+  if(!rows || rows.length === 0){ alert('No data to export'); return; }
+  let html = '<table border="1"><thead><tr>';
+  const header = ['S.No','User ID','Name','Amt/Shift','Total Shift','Total Amt','Stored Advances','Mess','Monthly Advance','U/F','P/F','Debit','JVC Amt','Other','Deductions','Payment Mode','Paid Salary'];
+  header.forEach(h => html += `<th style="background:#eee;padding:6px">${h}</th>`);
+  html += '</tr></thead><tbody>';
+  rows.forEach(r => {
+    html += '<tr>';
+    html += `<td>${r.sno}</td><td>${r.id}</td><td style="text-align:left;padding-left:6px">${r.name}</td>`;
+    html += `<td>${r.amtPerShift}</td><td>${r.totalShift}</td><td>${r.totalAmt}</td><td>${r.storedAdvances}</td>`;
+    html += `<td>${r.mess}</td><td>${r.monthlyAdvance}</td><td>${r.uf}</td><td>${r.pf}</td><td>${r.debit}</td><td>${r.jvc}</td><td>${r.other}</td>`;
+    html += `<td>${r.deductions}</td><td>${r.paymentMode}</td><td>${r.paidSalary}</td>`;
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  const blob = new Blob(['\uFEFF' + html], {type: 'application/vnd.ms-excel'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `salary_${monthStr}.xls`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+function exportSalaryPDF() {
+  const monthStr = $id('salaryMonth').value || $id('ownerMonth').value;
+  if(!monthStr){ alert('Select month first'); return; }
+  const rows = _collectSalaryRows_forExport(monthStr);
+  if(!rows || rows.length === 0){ alert('No data to export'); return; }
+
+  let html = `<!doctype html><html><head><meta charset="utf-8"><title>Salary ${monthStr}</title>`;
+  html += '<style>body{font-family:Arial,Helvetica,sans-serif;font-size:12px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #333;padding:6px;text-align:center}th{background:#eee}</style></head><body>';
+  html += `<h2>Salary sheet — ${monthStr}</h2>`;
+  html += '<table><thead><tr>';
+  const header = ['S.No','User ID','Name','Amt/Shift','Total Shift','Total Amt','Stored Advances','Mess','Monthly Advance','U/F','P/F','Debit','JVC Amt','Other','Deductions','Payment Mode','Paid Salary'];
+  header.forEach(h => html += `<th>${h}</th>`);
+  html += '</tr></thead><tbody>';
+  rows.forEach(r => {
+    html += '<tr>';
+    html += `<td>${r.sno}</td><td>${r.id}</td><td style="text-align:left;padding-left:6px">${r.name}</td>`;
+    html += `<td>${r.amtPerShift}</td><td>${r.totalShift}</td><td>${r.totalAmt}</td><td>${r.storedAdvances}</td>`;
+    html += `<td>${r.mess}</td><td>${r.monthlyAdvance}</td><td>${r.uf}</td><td>${r.pf}</td><td>${r.debit}</td><td>${r.jvc}</td><td>${r.other}</td>`;
+    html += `<td>${r.deductions}</td><td>${r.paymentMode}</td><td>${r.paidSalary}</td>`;
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  html += '<p style="margin-top:12px;color:#666">Generated by Salary Portal</p>';
+  html += '</body></html>';
+  const w = window.open('', '_blank');
+  if(!w){ alert('Pop-up blocked. Allow pop-ups for this site to print/save PDF.'); return; }
+  w.document.write(html); w.document.close(); w.focus();
+}
+
+/* -----------------------
+   Small utilities & animations
+   ----------------------- */
+function animateTableRows(containerSelector, delay = 10){
+  const container = document.querySelector(containerSelector);
+  if(!container) return;
+  const rows = container.querySelectorAll('tbody tr');
+  rows.forEach((r, i) => {
+    r.classList.remove('visible');
+    setTimeout(() => r.classList.add('visible'), i * delay + 30);
+  });
+}
+
+/* lightweight confetti */
+(function setupConfetti(){
+  const canvas = document.createElement('canvas'); canvas.id='confetti-canvas'; canvas.style.display='none'; document.body.appendChild(canvas);
+  const ctx = canvas.getContext && canvas.getContext('2d');
+  let particles = [], animId = null;
+  function resize(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  window.addEventListener('resize', resize); resize();
+  function rand(min,max){ return Math.random()*(max-min)+min; }
+  function makeParticles(x, y, count = 80){
+    if(!ctx) return;
+    particles = [];
+    for(let i=0;i<count;i++){
+      particles.push({
+        x: x !== undefined ? x : rand(0, canvas.width),
+        y: y !== undefined ? y : rand(0, canvas.height * 0.2),
+        vx: rand(-6,6), vy: rand(-12, -4),
+        rot: rand(0,360), vr: rand(-10,10), size: rand(6,12),
+        color: `hsl(${Math.floor(rand(0,360))} 85% 55%)`, life: rand(60,120)
+      });
+    }
+    canvas.style.display = 'block';
+    if(!animId) animId = requestAnimationFrame(loop);
+  }
+  function loop(){
+    if(!ctx) return;
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+    for(let i=particles.length-1;i>=0;i--){
+      const p = particles[i]; p.vy += 0.6; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life--;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot * Math.PI/180);
+      ctx.fillStyle = p.color; ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size*0.6); ctx.restore();
+      if(p.y > canvas.height + 50 || p.life <= 0) particles.splice(i,1);
+    }
+    if(particles.length > 0) animId = requestAnimationFrame(loop);
+    else { cancelAnimationFrame(animId); animId = null; canvas.style.display = 'none'; }
+  }
+  window.celebrateSave = function(x,y){ makeParticles(x,y,120); };
+})();
+
+/* tiny pulse on export buttons */
+(function attachExportPulse(){
+  function attach(selector){
+    const btn = document.querySelector(selector);
+    if(!btn) return;
+    btn.addEventListener('click', function(){ btn.classList.add('export-pulse'); setTimeout(()=> btn.classList.remove('export-pulse'), 900); });
+  }
+  window.addEventListener('load', ()=>{ attach('button[onclick="exportMonthExcel()"]'); attach('button[onclick="exportMonthCSV()"]'); attach('button[onclick="exportMonthPDF()"]'); });
+})();
+
+/* init */
+window.addEventListener('load', ()=>{ $id('roleCard').classList.remove('hidden'); $id('advMonth').value = new Date().toISOString().slice(0,7); $id('ownerMonth').value = new Date().toISOString().slice(0,7); $id('salaryMonth').value = $id('ownerMonth').value; renderLabourList(); populateAdvLabSelect(); renderAdvSection(); renderSalarySection(); });
+</script>
+</body>
+</html>
