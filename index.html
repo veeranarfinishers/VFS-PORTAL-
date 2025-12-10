@@ -6,23 +6,8 @@
 <title>Labour Shift, Advance & Salary Portal</title>
 <style>
   :root{--sticky-id:90px;--sticky-name:240px}
-  /* === Background watermark (safe) ===
-     Place logo.png in same folder as this HTML.
-     The logo file should be a faint PNG or SVG for best results.
-  */
-  body{
-    margin:0;
-    font-family: Arial, Helvetica, sans-serif;
-    background-color: #f5f7fb;
-    /* watermark on body (doesn't block clicks) */
-    background-image: url('logo.png');
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 60%;          /* adjust 40%..80% as desired */
-    background-attachment: fixed;
-  }
-
-  .wrap{max-width:1400px;margin:18px auto;padding:14px; position: relative; z-index: 1}
+  body{font-family:Arial,Helvetica,sans-serif;background:#f5f7fb;margin:0}
+  .wrap{max-width:1400px;margin:18px auto;padding:14px}
   .card{background:#fff;border-radius:8px;padding:12px;margin-bottom:12px;box-shadow:0 2px 10px rgba(20,20,40,0.06)}
   h1{margin:4px 0 10px;font-size:20px}
   .row{display:flex;gap:8px;flex-wrap:wrap}
@@ -45,7 +30,9 @@
   @media (max-width:1100px){ :root{--sticky-name:160px} }
   .readonly{background:#f8f9fb}
 
-/* small UI polish */
+/* ------- Animated UI styles ------- */
+
+/* Animated gradient header */
 #roleCard h1{
   background: linear-gradient(90deg,#0b79ff,#6dd3ff,#8b6bff);
   -webkit-background-clip: text;
@@ -54,26 +41,69 @@
   animation: hueShift 6s linear infinite;
   font-weight:700;
 }
-@keyframes hueShift{ 0%{filter:hue-rotate(0deg)} 50%{filter:hue-rotate(60deg)} 100%{filter:hue-rotate(0deg)} }
+@keyframes hueShift{
+  0%{filter:hue-rotate(0deg)}
+  50%{filter:hue-rotate(60deg)}
+  100%{filter:hue-rotate(0deg)}
+}
 
-button{ transition: transform .12s ease, box-shadow .12s ease; will-change: transform; }
+/* Buttons: micro-interaction */
+button{
+  transition: transform .12s ease, box-shadow .12s ease;
+  will-change: transform;
+}
 button:hover{ transform: translateY(-3px); box-shadow: 0 6px 18px rgba(11,121,255,0.12); }
 button:active{ transform: translateY(-1px) scale(.995); box-shadow: 0 4px 12px rgba(11,121,255,0.08); }
 
-.export-pulse{ animation: pulse 1.2s infinite; box-shadow: 0 6px 22px rgba(11,121,255,0.12); }
-@keyframes pulse{ 0%{transform:scale(1)} 50%{transform:scale(1.02)} 100%{transform:scale(1)} }
+/* Export buttons pulse during export */
+.export-pulse{
+  animation: pulse 1.2s infinite;
+  box-shadow: 0 6px 22px rgba(11,121,255,0.12);
+}
+@keyframes pulse{
+  0%{transform:scale(1)}
+  50%{transform:scale(1.02)}
+  100%{transform:scale(1)}
+}
 
-.table-wrap table tbody tr{ opacity:0; transform: translateY(6px); transition: opacity .32s ease, transform .32s ease; }
-.table-wrap table tbody tr.visible{ opacity:1; transform: translateY(0); }
+/* Table rows fade-in */
+.table-wrap table tbody tr{
+  opacity:0;
+  transform: translateY(6px);
+  transition: opacity .32s ease, transform .32s ease;
+}
+.table-wrap table tbody tr.visible{
+  opacity:1; transform: translateY(0);
+}
 
-input:focus, textarea:focus, select:focus{ outline: none; box-shadow: 0 4px 18px rgba(11,121,255,0.12); border-color: #0b79ff; transition: box-shadow .18s ease, border-color .18s ease; }
+/* Input focus glow */
+input:focus, textarea:focus, select:focus{
+  outline: none;
+  box-shadow: 0 4px 18px rgba(11,121,255,0.12);
+  border-color: #0b79ff;
+  transition: box-shadow .18s ease, border-color .18s ease;
+}
 
-#labourModal{ transform: translateY(-6px); opacity: 0; transition: transform .28s cubic-bezier(.2,.9,.2,1), opacity .28s ease; }
-#labourModal.show-anim{ transform: translateY(0); opacity:1; }
+/* Modal slide in */
+#labourModal{
+  transform: translateY(-6px);
+  opacity: 0;
+  transition: transform .28s cubic-bezier(.2,.9,.2,1), opacity .28s ease;
+}
+#labourModal.show-anim{
+  transform: translateY(0); opacity:1;
+}
 
-.small-badge{ display:inline-block;padding:6px 8px;border-radius:999px;background:#28a745;color:#fff;font-size:12px;margin-left:8px; box-shadow: 0 6px 18px rgba(40,167,69,0.12); }
-#confetti-canvas{ position:fixed; left:0; top:0; width:100%; height:100%; pointer-events:none; z-index:9999; }
+/* Tiny badge for success */
+.small-badge{
+  display:inline-block;padding:6px 8px;border-radius:999px;background:#28a745;color:#fff;font-size:12px;margin-left:8px;
+  box-shadow: 0 6px 18px rgba(40,167,69,0.12);
+}
 
+/* Confetti canvas sits above UI */
+#confetti-canvas{
+  position:fixed; left:0; top:0; width:100%; height:100%; pointer-events:none; z-index:9999;
+}
 </style>
 </head>
 <body>
@@ -227,9 +257,7 @@ input:focus, textarea:focus, select:focus{ outline: none; box-shadow: 0 4px 18px
 </div>
 
 <script>
-/* -----------------------
-   Storage & app utilities
-   ----------------------- */
+/* Storage & seed */
 const KEY_LABOURS = 'labours_v2';
 const KEY_ATT = 'attendance_v2';
 const KEY_ADV = 'advances_v1';
@@ -259,30 +287,17 @@ function getSalaries(){ return JSON.parse(localStorage.getItem(KEY_SAL)||'{}') }
 function setSalaries(o){ localStorage.setItem(KEY_SAL, JSON.stringify(o)) }
 function $id(i){ return document.getElementById(i) }
 
-/* ----- UI helpers ----- */
+/* UI helpers */
 function hideAll(){ ['ownerLoginCard','labourLoginCard','ownerDashboard','labourDashboard','labourModal'].forEach(id=> $id(id).classList.add('hidden')) }
 function showOwnerLogin(){ hideAll(); $id('ownerLoginCard').classList.remove('hidden') }
 function showLabourLogin(){ hideAll(); $id('labourLoginCard').classList.remove('hidden') }
 function backToRole(){ hideAll(); $id('roleCard').classList.remove('hidden') }
 
-/* -----------------------
-   Login flows
-   ----------------------- */
-/* Owner password (updated per your request) */
+/* Login flows */
 function loginOwner(){
   const pwd = $id('ownerPwd').value.trim();
-  if(pwd === 'vfs15254'){
-    hideAll();
-    $id('ownerDashboard').classList.remove('hidden');
-    initOwnerMonth();
-    renderLabourList();
-    populateAdvLabSelect();
-    renderAdvSection();
-    $id('salaryMonth').value = $id('ownerMonth').value;
-    renderSalarySection();
-  } else {
-    alert('Wrong password');
-  }
+  if(pwd === 'owner123'){ hideAll(); $id('ownerDashboard').classList.remove('hidden'); initOwnerMonth(); renderLabourList(); populateAdvLabSelect(); renderAdvSection(); $id('salaryMonth').value = $id('ownerMonth').value; renderSalarySection(); }
+  else alert('Wrong password');
 }
 
 let currentLabour = null;
@@ -297,9 +312,7 @@ function loginLabour(){
 }
 function logout(){ location.reload(); }
 
-/* -----------------------
-   Manage labours
-   ----------------------- */
+/* Manage labours */
 function renderLabourList(){
   const wrap = $id('labourListWrap'); const arr = getLabours();
   let html = '<table><tr><th>S.No</th><th>User ID</th><th>Name</th><th>Rate/Shift</th><th>Actions</th></tr>';
@@ -341,9 +354,7 @@ function deleteLabour(id){
   alert('Deleted ' + id);
 }
 
-/* -----------------------
-   Column logic
-   ----------------------- */
+/* Column logic */
 function getColumnsForMonth(monthStr){
   const [y,m] = monthStr.split('-').map(Number);
   const daysInMonth = new Date(y,m,0).getDate();
@@ -351,24 +362,13 @@ function getColumnsForMonth(monthStr){
   const cols = [];
   if(monthStr === currentMonthStr){
     const todayDay = today.getDate();
-    if(todayDay === 1){
-      const prev = new Date(today.getFullYear(), today.getMonth(), 0);
-      const prevDay = prev.getDate();
-      const prevMonthStr = prev.toISOString().slice(0,7);
-      cols.push({day:prevDay, month:prevMonthStr});
-      for(let d=1; d<=daysInMonth; d++) cols.push({day:d, month:monthStr});
-    } else {
-      for(let d = todayDay - 1; d >= 1; d--) cols.push({day:d, month:monthStr});
-    }
-  } else {
-    for(let d = daysInMonth; d >=1; d--) cols.push({day:d, month:monthStr});
-  }
+    if(todayDay === 1){ const prev = new Date(today.getFullYear(), today.getMonth(), 0); const prevDay = prev.getDate(); const prevMonthStr = prev.toISOString().slice(0,7); cols.push({day:prevDay, month:prevMonthStr}); for(let d=1; d<=daysInMonth; d++) cols.push({day:d, month:monthStr}); }
+    else { for(let d = todayDay - 1; d >= 1; d--) cols.push({day:d, month:monthStr}); }
+  } else { for(let d = daysInMonth; d >=1; d--) cols.push({day:d, month:monthStr}); }
   return cols;
 }
 
-/* -----------------------
-   Owner attendance table
-   ----------------------- */
+/* Owner attendance table */
 function initOwnerMonth(){ const today = new Date(); $id('ownerMonth').value = today.toISOString().slice(0,7); generateOwnerTable(); $id('salaryMonth').value = $id('ownerMonth').value; }
 function generateOwnerTable(){
   const monthStr = $id('ownerMonth').value; if(!monthStr){ alert('Select month'); return; }
@@ -396,6 +396,7 @@ function generateOwnerTable(){
   // attach listeners & animate rows
   $id('ownerTableWrap').querySelectorAll('.cellInp').forEach(i => i.addEventListener('input', () => { updateRowTotals(); ownerFilter(); }));
   updateRowTotals();
+  // animate
   setTimeout(()=> animateTableRows('#ownerTable'), 40);
 }
 function updateRowTotals(){
@@ -406,12 +407,10 @@ function updateRowTotals(){
     row.querySelector('.rowTotal').textContent = total;
   });
 }
-function ownerFilter(){ const q = $id('ownerSearch').value.trim().toLowerCase(); const rows = document.querySelectorAll('#ownerTable tbody tr'); if(!rows) return; rows.forEach(r=>{ const idName = (r.querySelector('.sticky-name') && r.querySelector('.sticky-name').textContent) || ''; const parts = idName.split(' - '); const id = parts[0] || ''; const name = parts[1] || ''; if(!q){ r.style.display = ''; return; } if(id.toLowerCase().includes(q) || name.toLowerCase().includes(q)) r.style.display = ''; else r.style.display = 'none'; }); }
+function ownerFilter(){ const q = $id('ownerSearch').value.trim().toLowerCase(); const rows = document.querySelectorAll('#ownerTable tbody tr'); if(!rows) return; rows.forEach(r=>{ const idName = (r.querySelector('.sticky-name')?.textContent || '').toLowerCase(); const parts = idName.split(' - '); const id = parts[0] || ''; const name = parts[1] || ''; if(!q){ r.style.display = ''; return; } if(id.toLowerCase().includes(q) || name.toLowerCase().includes(q)) r.style.display = ''; else r.style.display = 'none'; }); }
 function saveAll(){ const monthStr = $id('ownerMonth').value; if(!monthStr){ alert('Select month'); return; } const rows = $id('ownerTableWrap').querySelectorAll('tbody tr'); const att = getAttendance(); rows.forEach(row=>{ const id = row.dataset.id; const perMonth = {}; row.querySelectorAll('.cellInp').forEach(ci=>{ const day = ci.dataset.day; const m = ci.dataset.month; if(!perMonth[m]) perMonth[m] = {shifts:{}}; perMonth[m].shifts[day] = Number(ci.value) || 0; }); Object.keys(perMonth).forEach(m=>{ const key = id + '_' + m; const existing = att[key] || {shifts:{}, rate: getLabours().find(l=>l.id===id).rate}; existing.shifts = Object.assign(existing.shifts || {}, perMonth[m].shifts); att[key] = existing; }); }); setAttendance(att); alert('Saved (local). Attendance stored per month.'); try{ window.celebrateSave(); }catch(e){} const btn = document.querySelector('button.success'); if(btn){ const b = document.createElement('span'); b.className='small-badge'; b.textContent='Saved'; btn.parentNode && btn.parentNode.insertBefore(b, btn.nextSibling); setTimeout(()=> b.remove(), 2200); } }
 
-/* -----------------------
-   Advances
-   ----------------------- */
+/* Advances */
 function populateAdvLabSelect(){ const sel = $id('advLabSelect'); sel.innerHTML = ''; getLabours().forEach(l=>{ const opt = document.createElement('option'); opt.value = l.id; opt.textContent = l.id + ' - ' + l.name; sel.appendChild(opt); }); }
 function renderAdvSection(){ const month = $id('advMonth').value || $id('ownerMonth').value || new Date().toISOString().slice(0,7); $id('advMonthLabel').textContent = month; const adv = getAdvances(); const labs = getLabours(); const tbody = $id('advTable').querySelector('tbody'); tbody.innerHTML = ''; labs.forEach((lab,i)=>{ const list = (adv[lab.id] || []).filter(a=> a.date && a.date.startsWith(month)); const total = list.reduce((s,it)=> s + Number(it.amount||0), 0); const tr = document.createElement('tr'); tr.innerHTML = `<td>${i+1}</td><td>${lab.id}</td><td style="text-align:left;padding-left:6px">${lab.name}</td><td>₹${total}</td><td><button onclick="prefillAdvance('${lab.id}')">Add</button> <button onclick="viewAdvances('${lab.id}')">View</button></td>`; tbody.appendChild(tr); }); populateAdvLabSelect(); setTimeout(()=> animateTableRows('#advTable'), 40); }
 function clearAdvInputs(){ $id('advDate').value=''; $id('advAmount').value=''; $id('advNote').value=''; }
@@ -419,9 +418,7 @@ function saveAdvanceFromSection(){ const labId = $id('advLabSelect').value; cons
 function prefillAdvance(labId){ $id('advLabSelect').value = labId; $id('advDate').value = new Date().toISOString().slice(0,10); $id('advAmount').value=''; $id('advNote').value=''; window.scrollTo({top:document.body.scrollHeight, behavior:'smooth'}); }
 function viewAdvances(labId){ const adv = getAdvances(); const list = adv[labId] || []; let html = `<h3>Advances for ${labId}</h3>`; if(list.length===0) html += '<p>No advances</p>'; else{ html += '<table><tr><th>Date</th><th>Amount</th><th>Note</th></tr>'; list.slice().reverse().forEach(a=> html += `<tr><td>${a.date}</td><td>₹${a.amount}</td><td style="text-align:left;padding-left:6px">${a.note||''}</td></tr>`); html += '</table>'; } const w = window.open('', '_blank'); w.document.write('<title>Advances</title>'+html); w.document.close(); }
 
-/* -----------------------
-   Salary
-   ----------------------- */
+/* Salary */
 function renderSalarySection(){ const month = $id('salaryMonth').value || $id('ownerMonth').value || new Date().toISOString().slice(0,7); const labs = getLabours(); const att = getAttendance(); const sal = getSalaries(); const tbody = $id('salaryTable').querySelector('tbody'); tbody.innerHTML = '';
   labs.forEach((lab,i)=>{
     const rec = att[lab.id + '_' + month] || {shifts:{}, rate:lab.rate};
@@ -460,7 +457,7 @@ function renderSalarySection(){ const month = $id('salaryMonth').value || $id('o
 }
 function salaryInputChanged(e){
   const id = e.target.dataset.id; if(!id) return;
-  const row = Array.from(document.querySelectorAll('#salaryTable tbody tr')).find(tr => tr.querySelector('.salary-amtPerShift') && tr.querySelector('.salary-amtPerShift').dataset.id === id);
+  const row = Array.from(document.querySelectorAll('#salaryTable tbody tr')).find(tr => tr.querySelector('.salary-amtPerShift')?.dataset.id === id);
   if(!row) return;
   const totalShift = Number(row.querySelector('.salary-totalShift').value) || 0;
   const totalAmt = totalShift * totalShift;
@@ -504,9 +501,7 @@ function saveSalarySheet(){
   try{ window.celebrateSave(); }catch(e){}
 }
 
-/* -----------------------
-   Labour Portal views
-   ----------------------- */
+/* Labour view */
 function showLabourInfo(){ if(!currentLabour) return; $id('labourInfo').innerHTML = `<p><strong>${currentLabour.name}</strong> (User ID: ${currentLabour.id})</p>`; $id('labourMonth').value = new Date().toISOString().slice(0,7); }
 function loadLabourAttendance(){
   if(!currentLabour) return; const monthStr = $id('labourMonth').value; if(!monthStr) return;
@@ -574,14 +569,10 @@ function loadLabourSalary(){
   function rowTD(label, value){ return `<tr><td style="text-align:left;padding:6px 12px;font-weight:600">${label}</td><td style="text-align:right;padding:6px 12px">${value}</td></tr>`; }
 }
 
-/* -----------------------
-   Backup export
-   ----------------------- */
+/* Backup export */
 function exportAll(){ const payload = {labours: getLabours(), attendance: getAttendance(), advances: getAdvances(), salaries: getSalaries()}; const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'attendance_backup_with_advances_and_salary.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
 
-/* -----------------------
-   Shift exports (CSV/XLS/PDF)
-   ----------------------- */
+/* ---------- SHIFT (attendance) export: CSV / XLS / PDF ---------- */
 function _collectShiftRows_forExport(monthStr) {
   if(!monthStr) return null;
   const labs = getLabours();
@@ -685,9 +676,7 @@ function exportMonthPDF() {
   w.focus();
 }
 
-/* -----------------------
-   Salary exports (CSV/XLS/PDF)
-   ----------------------- */
+/* ---------- SALARY export helpers & functions ---------- */
 function _collectSalaryRows_forExport(monthStr) {
   if(!monthStr) return null;
   const labs = getLabours();
@@ -779,7 +768,6 @@ function exportSalaryPDF() {
   if(!monthStr){ alert('Select month first'); return; }
   const rows = _collectSalaryRows_forExport(monthStr);
   if(!rows || rows.length === 0){ alert('No data to export'); return; }
-
   let html = `<!doctype html><html><head><meta charset="utf-8"><title>Salary ${monthStr}</title>`;
   html += '<style>body{font-family:Arial,Helvetica,sans-serif;font-size:12px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #333;padding:6px;text-align:center}th{background:#eee}</style></head><body>';
   html += `<h2>Salary sheet — ${monthStr}</h2>`;
@@ -803,9 +791,7 @@ function exportSalaryPDF() {
   w.document.write(html); w.document.close(); w.focus();
 }
 
-/* -----------------------
-   Small utilities & animations
-   ----------------------- */
+/* Utility: animate table rows visible after render */
 function animateTableRows(containerSelector, delay = 10){
   const container = document.querySelector(containerSelector);
   if(!container) return;
@@ -816,55 +802,77 @@ function animateTableRows(containerSelector, delay = 10){
   });
 }
 
-/* lightweight confetti */
+/* Confetti celebration (lightweight) */
 (function setupConfetti(){
-  const canvas = document.createElement('canvas'); canvas.id='confetti-canvas'; canvas.style.display='none'; document.body.appendChild(canvas);
-  const ctx = canvas.getContext && canvas.getContext('2d');
+  const canvas = document.createElement('canvas');
+  canvas.id = 'confetti-canvas';
+  canvas.style.display = 'none';
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
   let particles = [], animId = null;
+
   function resize(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
   window.addEventListener('resize', resize); resize();
+
   function rand(min,max){ return Math.random()*(max-min)+min; }
+
   function makeParticles(x, y, count = 80){
-    if(!ctx) return;
     particles = [];
     for(let i=0;i<count;i++){
       particles.push({
         x: x !== undefined ? x : rand(0, canvas.width),
         y: y !== undefined ? y : rand(0, canvas.height * 0.2),
-        vx: rand(-6,6), vy: rand(-12, -4),
-        rot: rand(0,360), vr: rand(-10,10), size: rand(6,12),
-        color: `hsl(${Math.floor(rand(0,360))} 85% 55%)`, life: rand(60,120)
+        vx: rand(-6,6),
+        vy: rand(-12, -4),
+        rot: rand(0,360),
+        vr: rand(-10,10),
+        size: rand(6,12),
+        color: `hsl(${Math.floor(rand(0,360))} 85% 55%)`,
+        life: rand(60,120)
       });
     }
     canvas.style.display = 'block';
     if(!animId) animId = requestAnimationFrame(loop);
   }
+
   function loop(){
-    if(!ctx) return;
     ctx.clearRect(0,0,canvas.width, canvas.height);
     for(let i=particles.length-1;i>=0;i--){
-      const p = particles[i]; p.vy += 0.6; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life--;
-      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot * Math.PI/180);
-      ctx.fillStyle = p.color; ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size*0.6); ctx.restore();
+      const p = particles[i];
+      p.vy += 0.6; // gravity
+      p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life--;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot * Math.PI/180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size*0.6);
+      ctx.restore();
       if(p.y > canvas.height + 50 || p.life <= 0) particles.splice(i,1);
     }
     if(particles.length > 0) animId = requestAnimationFrame(loop);
     else { cancelAnimationFrame(animId); animId = null; canvas.style.display = 'none'; }
   }
-  window.celebrateSave = function(x,y){ makeParticles(x,y,120); };
+
+  // Expose celebrateSave
+  window.celebrateSave = function(x, y){
+    makeParticles(x, y, 120);
+  };
 })();
 
-/* tiny pulse on export buttons */
+/* Auto attach a short pulse to the owner export buttons */
 (function attachExportPulse(){
   function attach(selector){
     const btn = document.querySelector(selector);
     if(!btn) return;
-    btn.addEventListener('click', function(){ btn.classList.add('export-pulse'); setTimeout(()=> btn.classList.remove('export-pulse'), 900); });
+    btn.addEventListener('click', function(){
+      btn.classList.add('export-pulse');
+      setTimeout(()=> btn.classList.remove('export-pulse'), 900);
+    });
   }
   window.addEventListener('load', ()=>{ attach('button[onclick="exportMonthExcel()"]'); attach('button[onclick="exportMonthCSV()"]'); attach('button[onclick="exportMonthPDF()"]'); });
 })();
 
-/* init */
+/* Init */
 window.addEventListener('load', ()=>{ $id('roleCard').classList.remove('hidden'); $id('advMonth').value = new Date().toISOString().slice(0,7); $id('ownerMonth').value = new Date().toISOString().slice(0,7); $id('salaryMonth').value = $id('ownerMonth').value; renderLabourList(); populateAdvLabSelect(); renderAdvSection(); renderSalarySection(); });
 </script>
 </body>
