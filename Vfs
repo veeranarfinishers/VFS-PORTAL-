@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Labour Shift, Advance & Salary Portal (PDF fixed)</title>
+<style>
+  :root{--sticky-id:90px;--sticky-name:260px}
+  body{font-family:Inter,Arial,Helvetica,sans-serif;background:#f5f7fb;margin:0;color:#222}
+  .wrap{max-width:1200px;margin:18px auto;padding:14px}
+  .card{background:#fff;border-radius:10px;padding:14px;margin-bottom:12px;box-shadow:0 6px 20px rgba(20,20,40,0.05)}
+  h1{margin:6px 0 12px;font-size:20px}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  input,select,button,textarea{font-size:14px;padding:8px;border-radius:8px;border:1px solid #d6e0ef}
+  button{cursor:pointer}
+  .btn{background:#0b79ff;color:#fff;border:none}
+  .btn-muted{background:#6c757d;color:#fff;border:none}
+  .success{background:#28a745;color:#fff;border:none}
+  .danger{background:#dc3545;color:#fff;border:none}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{border:1px solid #e8eef8;padding:6px;text-align:center;white-space:nowrap}
+  th{background:#f3f8ff}
+  .small{font-size:12px;color:#555}
+  .muted{color:#666}
+  .hidden{display:none}
+  .table-wrap{overflow:auto;background:#fff;padding:8px;border-radius:8px}
+  table thead th.sticky-id, table tbody td.sticky-id{ position:sticky; left:0; background:#fff; z-index:4; min-width:var(--sticky-id) }
+  table thead th.sticky-name, table tbody td.sticky-name{ position:sticky; left:var(--sticky-id); background:#fff; z-index:3; min-width:var(--sticky-name); text-align:left; padding-left:10px }
+  .readonly{background:#f6f8fb}
+  .controls{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+  .search{width:300px}
+  @media (max-width:1100px){ :root{--sticky-name:160px} .search{width:140px} }
+  button{transition:transform .12s ease, box-shadow .12s ease}
+  button:hover{transform:translateY(-3px)}
+</style>
+
+<!-- html2canvas and jspdf (CDN) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNa5s4qg9Sg1qkjfKq3rPs1lQm9GfV1e3Ssv0XyZq1sXQn6rD7tq+6ZQmVx0Q9mANmGJ2w3a8qT0gE5kW1R5xg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-5n1x7qv2k+Kp8k7fVx1x6g2G6qgGmE7g8H3g2F3Kq1jV9n2pT6cY3k4pQ2v5mW8q1oF3g2e7A7B1q2g3M4w5Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+</head>
+<body>
+<div class="wrap">
+  <div class="card" id="homeCard">
+    <h1>Labour Shift, Advance & Salary Portal</h1>
+    <div class="row">
+      <button class="btn" onclick="showOwnerLogin()">Owner Login</button>
+      <button class="btn-muted" onclick="showLabourLogin()">Labour Login</button>
+      <div style="flex:1"></div>
+    </div>
+    <p class="small muted">This file runs entirely in your browser (Chrome). Data is saved locally (localStorage).</p>
+  </div>
+
+  <!-- Owner Login -->
+  <div class="card hidden" id="ownerLoginCard">
+    <h3>Owner Login</h3>
+    <label>Enter password</label><br>
+    <input id="ownerPwd" type="password" autocomplete="off" placeholder="password">
+    <div style="margin-top:10px">
+      <button class="btn" onclick="loginOwner()">Login</button>
+      <button onclick="backToHome()">Back</button>
+    </div>
+    <p class="small muted">Demo owner password: <strong>vfs15254</strong> (change in code)</p>
+  </div>
+
+  <!-- Labour Login -->
+  <div class="card hidden" id="labourLoginCard">
+    <h3>Labour Login</h3>
+    <label>User ID</label><br>
+    <input id="labUserId" placeholder="L001" autocomplete="off">
+    <label style="margin-left:8px">Password</label><br>
+    <input id="labPwd" type="password" placeholder="password" autocomplete="off">
+    <div style="margin-top:10px">
+      <button class="btn" onclick="loginLabour()">Login</button>
+      <button onclick="backToHome()">Back</button>
+    </div>
+    <p class="small muted">Demo labours: L001 / 1234 &nbsp; L002 / 1234</p>
+  </div>
+
+  <!-- Owner Dashboard -->
+  <div class="card hidden" id="ownerDashboard">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <h2>Owner Dashboard</h2>
+      <div><button onclick="logout()">Logout</button></div>
+    </div>
+
+    <div class="controls">
+      <label>Month</label>
+      <input type="month" id="ownerMonth">
+      <button class="btn" onclick="generateAttendanceTable()">Load Table</button>
+      <button onclick="openAddLabour()">Add Labour</button>
+      <button onclick="exportBackup()">Export Backup</button>
+      <div style="flex:1"></div>
+      <label>Search</label>
+      <input id="ownerSearch" class="search" placeholder="ID or name" oninput="ownerLiveSearch()">
+      <button class="success" onclick="saveAttendance()">Save All</button>
+      <button onclick="exportShiftCSV()">Export Shifts CSV</button>
+      <button onclick="exportShiftXLS()">Export Shifts XLS</button>
+      <button onclick="exportShiftPDF()">Export Shifts PDF</button>
+    </div>
+
+    <div id="attendanceWrap" class="card table-wrap"></div>
+
+    <div class="card" id="advancesCard" style="margin-top:12px">
+      <h3>Advances</h3>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <label>For Month: <input type="month" id="advMonth"></label>
+        <button onclick="renderAdvances()">Show</button>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:12px;align-items:flex-start">
+        <div style="flex:1">
+          <table id="advTable"><thead><tr><th>S.No</th><th>ID</th><th>Name</th><th>Total (₹)</th><th>Actions</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div style="width:340px">
+          <h4>Add Advance</h4>
+          <label>Labour</label>
+          <select id="advLabSelect" style="width:100%"></select>
+          <label>Date</label>
+          <input id="advDate" type="date">
+          <label>Amount (₹)</label>
+          <input id="advAmount" type="number" min="0">
+          <label>Note</label>
+          <textarea id="advNote" rows="3" style="width:100%"></textarea>
+          <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn" onclick="saveAdvance()">Save</button>
+            <button onclick="clearAdvInputs()">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="salaryCard" style="margin-top:12px">
+      <h3>Salary Sheet</h3>
+      <div style="display:flex;gap:8px;align-items:center">
+        <label>Month</label>
+        <input type="month" id="salaryMonth">
+        <button onclick="renderSalarySheet()">Show Salary</button>
+        <div style="flex:1"></div>
+        <button class="success" onclick="saveSalarySheet()">Save Salary Sheet</button>
+        <button onclick="exportSalaryCSV()">Download Salary CSV</button>
+        <button onclick="exportSalaryXLS()">Download Salary XLS</button>
+        <button onclick="exportSalaryPDF()">Download Salary PDF</button>
+      </div>
+      <div class="table-wrap" style="margin-top:10px">
+        <table id="salaryTable"><thead><tr>
+          <th class="sticky-id">S.No</th><th class="sticky-name">User ID - Name</th>
+          <th>Amt/Shift (₹)</th><th>Total Shift</th><th>Total Amt (₹)</th>
+          <th>Monthly Advance (₹)</th><th>Mess</th><th>U/F</th><th>P/F</th><th>Debit</th><th>JVC</th><th>Other</th><th>Payment Mode</th><th>Paid Salary (₹)</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+      <p class="small muted">Paid = TotalAmt − (MonthlyAdvance + Mess + U/F + P/F + Debit + JVC + Other). You can manually override Paid before saving.</p>
+    </div>
+
+    <hr>
+    <h3 class="small">Manage Labours</h3>
+    <div id="labourList"></div>
+
+  </div>
+
+  <!-- Labour Dashboard -->
+  <div class="card hidden" id="labourDashboard">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <h2>Labour Portal</h2>
+      <div><button onclick="logout()">Logout</button></div>
+    </div>
+    <div id="labourInfo"></div>
+
+    <label>Select Month</label>
+    <input type="month" id="labourMonth" onchange="loadLabourView()">
+    <div id="labourAttendance" class="card" style="margin-top:8px"></div>
+    <div id="labourAdvance" class="card" style="margin-top:8px"></div>
+    <div id="labourSalary" class="card" style="margin-top:8px"></div>
+  </div>
+
+  <!-- Modal: labour add/edit -->
+  <div class="card hidden" id="labourModal">
+    <h3 id="labourModalTitle">Add Labour</h3>
+    <label>User ID</label><input id="modalUserId"><br>
+    <label>Name</label><input id="modalName"><br>
+    <label>Password</label><input id="modalPwd"><br>
+    <label>Rate per shift (₹)</label><input id="modalRate" type="number" min="0"><br>
+    <div style="margin-top:10px">
+      <button class="btn" onclick="saveLabourModal()">Save</button>
+      <button onclick="closeLabourModal()">Cancel</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ---------------- Storage keys & seed ---------------- */
+const KEY_LAB = 'labours_v1';
+const KEY_ATT = 'attendance_v1';
+const KEY_ADV = 'advances_v1';
+const KEY_SAL = 'salary_v1';
+const OWNER_PWD = 'vfs15254'; // change as desired
+
+function seed(){
+  if(!localStorage.getItem(KEY_LAB)){
+    const sample = [
+      {id:'L001', name:'Ramu', password:'1234', rate:500},
+      {id:'L002', name:'Selvi', password:'1234', rate:450}
+    ];
+    localStorage.setItem(KEY_LAB, JSON.stringify(sample));
+  }
+  if(!localStorage.getItem(KEY_ATT)) localStorage.setItem(KEY_ATT, JSON.stringify({}));
+  if(!localStorage.getItem(KEY_ADV)) localStorage.setItem(KEY_ADV, JSON.stringify({}));
+  if(!localStorage.getItem(KEY_SAL)) localStorage.setItem(KEY_SAL, JSON.stringify({}));
+}
+seed();
+
+function getLabours(){ return JSON.parse(localStorage.getItem(KEY_LAB)||'[]') }
+function setLabours(a){ localStorage.setItem(KEY_LAB, JSON.stringify(a)) }
+function getAttendance(){ return JSON.parse(localStorage.getItem(KEY_ATT)||'{}') }
+function setAttendance(o){ localStorage.setItem(KEY_ATT, JSON.stringify(o)) }
+function getAdvances(){ return JSON.parse(localStorage.getItem(KEY_ADV)||'{}') }
+function setAdvances(o){ localStorage.setItem(KEY_ADV, JSON.stringify(o)) }
+function getSalaries(){ return JSON.parse(localStorage.getItem(KEY_SAL)||'{}') }
+function setSalaries(o){ localStorage.setItem(KEY_SAL, JSON.stringify(o)) }
+function el(id){ return document.getElementById(id) }
+
+/* ---------------- UI helpers ---------------- */
+function hideAllCards(){ ['ownerLoginCard','labourLoginCard','ownerDashboard','labourDashboard','labourModal'].forEach(i=>el(i).classList.add('hidden')) }
+function showOwnerLogin(){ hideAllCards(); el('ownerLoginCard').classList.remove('hidden') }
+function showLabourLogin(){ hideAllCards(); el('labourLoginCard').classList.remove('hidden') }
+function backToHome(){ hideAllCards(); el('homeCard').classList.remove('hidden') }
+function openOwnerDash(){ hideAllCards(); el('ownerDashboard').classList.remove('hidden'); populateOwnerControls(); }
+function openLabourDash(){ hideAllCards(); el('labourDashboard').classList.remove('hidden') }
+function logout(){ location.reload(); }
+
+/* ---------------- Login flows ---------------- */
+let currentLabour = null;
+function loginOwner(){
+  const v = el('ownerPwd').value.trim();
+  if(v === OWNER_PWD){ openOwnerDash(); } else alert('Wrong password');
+}
+
+function loginLabour(){
+  const id = el('labUserId').value.trim();
+  const pwd = el('labPwd').value.trim();
+  const lab = getLabours().find(x=>x.id===id && x.password===pwd);
+  if(!lab){ alert('Invalid ID or password'); return; }
+  currentLabour = lab;
+  openLabourDash();
+  el('labourMonth').value = (new Date()).toISOString().slice(0,7);
+  renderLabourInfo();
+  loadLabourView();
+}
+
+/* ---------------- Owner: attendance ---------------- */
+function populateOwnerControls(){
+  el('ownerMonth').value = (new Date()).toISOString().slice(0,7);
+  el('advMonth').value = el('ownerMonth').value;
+  el('salaryMonth').value = el('ownerMonth').value;
+  generateAttendanceTable();
+  renderLabourList();
+  populateAdvSelect();
+  renderAdvances();
+  renderSalarySheet();
+}
+
+function daysInMonth(y,m){ return new Date(y, m, 0).getDate(); }
+// Build full month columns (1..N)
+function getDaysForMonth(monthStr){
+  const [y,m] = monthStr.split('-').map(Number);
+  const n = daysInMonth(y,m);
+  const arr = [];
+  for(let d=1; d<=n; d++) arr.push(d);
+  return arr;
+}
+
+function generateAttendanceTable(){
+  const month = el('ownerMonth').value;
+  if(!month){ alert('Select month'); return; }
+  const labs = getLabours();
+  const att = getAttendance();
+  const days = getDaysForMonth(month);
+  let html = '<table id="attTable"><thead><tr><th class="sticky-id">S.No</th><th class="sticky-name">User ID - Name</th>';
+  days.forEach(d => html += `<th>${d}</th>`);
+  html += '<th>Total</th></tr></thead><tbody>';
+  labs.forEach((lab,i)=>{
+    html += `<tr data-id="${lab.id}"><td class="sticky-id">${i+1}</td><td class="sticky-name">${lab.id} - ${lab.name}</td>`;
+    const key = lab.id + '_' + month;
+    const rec = att[key] || {shifts:{}, rate: lab.rate};
+    let total = 0;
+    days.forEach(d=>{
+      const v = (rec.shifts && (rec.shifts[d] !== undefined)) ? rec.shifts[d] : 0;
+      total += Number(v) || 0;
+      html += `<td><input type="number" min="0" class="cellInp" data-day="${d}" data-lab="${lab.id}" value="${v}" style="width:70px"></td>`;
+    });
+    html += `<td class="rowTotal">${total}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  el('attendanceWrap').innerHTML = html;
+  // attach listeners
+  el('attendanceWrap').querySelectorAll('.cellInp').forEach(inp=>{
+    inp.addEventListener('input', ()=> {
+      updateRowTotals(); ownerLiveSearch();
+    });
+  });
+  updateRowTotals();
+}
+
+function updateRowTotals(){
+  const rows = el('attendanceWrap').querySelectorAll('tbody tr');
+  rows.forEach(r=>{
+    let s = 0;
+    r.querySelectorAll('.cellInp').forEach(ci=> s += Number(ci.value) || 0);
+    const totalCell = r.querySelector('.rowTotal');
+    if(totalCell) totalCell.textContent = s;
+  });
+}
+
+function saveAttendance(){
+  const month = el('ownerMonth').value;
+  if(!month){ alert('Select month'); return; }
+  const att = getAttendance();
+  el('attendanceWrap').querySelectorAll('tbody tr').forEach(r=>{
+    const labId = r.dataset.id;
+    const key = labId + '_' + month;
+    att[key] = att[key] || {shifts:{}, rate: getLabours().find(x=>x.id===labId).rate};
+    const inputs = r.querySelectorAll('.cellInp');
+    inputs.forEach(i=>{
+      const d = i.dataset.day;
+      att[key].shifts[d] = Number(i.value) || 0;
+    });
+  });
+  setAttendance(att);
+  alert('Attendance saved locally.');
+}
+
+/* ---------------- Owner: advances ---------------- */
+function populateAdvSelect(){
+  const sel = el('advLabSelect');
+  sel.innerHTML = '';
+  getLabours().forEach(l=>{
+    const o = document.createElement('option'); o.value = l.id; o.textContent = l.id + ' - ' + l.name; sel.appendChild(o);
+  });
+}
+
+function renderAdvances(){
+  const month = el('advMonth').value || el('ownerMonth').value;
+  const adv = getAdvances();
+  const labs = getLabours();
+  const tbody = el('advTable').querySelector('tbody');
+  tbody.innerHTML = '';
+  labs.forEach((l,i)=>{
+    const list = (adv[l.id]||[]).filter(a=> a.date && a.date.startsWith(month));
+    const tot = list.reduce((s,x)=> s + (Number(x.amount)||0), 0);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i+1}</td><td>${l.id}</td><td class="left">${l.name}</td><td>₹${tot}</td>
+      <td><button onclick="prefillAdvance('${l.id}')">Add</button> <button onclick="viewAdvances('${l.id}','${month}')">View</button></td>`;
+    tbody.appendChild(tr);
+  });
+  populateAdvSelect();
+}
+
+function clearAdvInputs(){ el('advDate').value = ''; el('advAmount').value=''; el('advNote').value=''; }
+function saveAdvance(){
+  const labId = el('advLabSelect').value;
+  const date = el('advDate').value;
+  const amount = Number(el('advAmount').value) || 0;
+  const note = el('advNote').value || '';
+  if(!labId || !date || amount <= 0){ alert('Select labour, date and amount'); return; }
+  const adv = getAdvances();
+  adv[labId] = adv[labId] || [];
+  adv[labId].push({date, amount, note});
+  setAdvances(adv);
+  clearAdvInputs();
+  renderAdvances();
+  renderSalarySheet();
+  alert('Advance saved');
+}
+function prefillAdvance(lid){ el('advLabSelect').value = lid; el('advDate').value = (new Date()).toISOString().slice(0,10); window.scrollTo({top:document.body.scrollHeight, behavior:'smooth'}); }
+function viewAdvances(lid, month){
+  const adv = getAdvances();
+  const list = (adv[lid]||[]).filter(a=> !month || a.date.startsWith(month));
+  let html = '<h3>Advances</h3>';
+  if(!list.length) html += '<p>No advances</p>'; else {
+    html += '<table><thead><tr><th>Date</th><th>Amount</th><th>Note</th></tr></thead><tbody>';
+    list.slice().reverse().forEach(a=> html += `<tr><td>${a.date}</td><td>₹${a.amount}</td><td class="left">${a.note||''}</td></tr>`);
+    html += '</tbody></table>';
+  }
+  const w = window.open('', '_blank');
+  w.document.write('<title>Advances</title>' + html); w.document.close();
+}
+
+/* ---------------- Owner: salary sheet ---------------- */
+function renderSalarySheet(){
+  const month = el('salaryMonth').value || el('ownerMonth').value;
+  const labs = getLabours();
+  const att = getAttendance();
+  const adv = getAdvances();
+  const sal = getSalaries();
+  const tbody = el('salaryTable').querySelector('tbody');
+  tbody.innerHTML = '';
+  labs.forEach((l,i)=>{
+    const key = l.id + '_' + month;
+    const rec = att[key] || {shifts:{}, rate: l.rate};
+    const totalShift = Object.values(rec.shifts||{}).reduce((s,v)=> s + (Number(v)||0), 0);
+    const advTotal = (adv[l.id]||[]).filter(a=> a.date && a.date.startsWith(month)).reduce((s,x) => s + (Number(x.amount)||0), 0);
+    const saved = (sal[l.id]||{})[month] || {};
+    const amtPerShift = Number(saved.amtPerShift !== undefined ? saved.amtPerShift : l.rate) || Number(l.rate||0);
+    const totalAmt = Number((amtPerShift * totalShift).toFixed(2));
+    const mess = Number(saved.mess||0);
+    const uf = Number(saved.uf||0);
+    const pf = Number(saved.pf||0);
+    const debit = Number(saved.debit||0);
+    const jvc = Number(saved.jvc||0);
+    const other = Number(saved.other||0);
+    const paymentMode = saved.paymentMode || 'Cash';
+    const deductions = Number((mess + advTotal + uf + pf + debit + jvc + other).toFixed(2));
+    const calcPaid = Number((totalAmt - deductions).toFixed(2));
+    const paidVal = (saved.paid !== undefined && saved.paid !== null) ? Number(saved.paid) : calcPaid;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="sticky-id">${i+1}</td>
+      <td class="sticky-name">${l.id} - ${l.name}</td>
+      <td><input class="salary-amtPerShift" data-id="${l.id}" value="${amtPerShift}" style="width:90px"></td>
+      <td><input class="salary-totalShift readonly" data-id="${l.id}" value="${totalShift}" readonly style="width:90px"></td>
+      <td><input class="salary-totalAmt readonly" data-id="${l.id}" value="${totalAmt}" readonly style="width:110px"></td>
+      <td><input class="salary-monthlyAdvance readonly" data-id="${l.id}" value="${advTotal}" readonly style="width:110px"></td>
+      <td><input class="salary-mess" data-id="${l.id}" value="${mess}" style="width:90px"></td>
+      <td><input class="salary-uf" data-id="${l.id}" value="${uf}" style="width:90px"></td>
+      <td><input class="salary-pf" data-id="${l.id}" value="${pf}" style="width:90px"></td>
+      <td><input class="salary-debit" data-id="${l.id}" value="${debit}" style="width:90px"></td>
+      <td><input class="salary-jvc" data-id="${l.id}" value="${jvc}" style="width:90px"></td>
+      <td><input class="salary-other" data-id="${l.id}" value="${other}" style="width:90px"></td>
+      <td><input class="salary-paymode" data-id="${l.id}" value="${paymentMode}" style="width:100px"></td>
+      <td><input class="salary-paid" data-id="${l.id}" value="${paidVal}" style="width:110px"></td>
+    `;
+    
